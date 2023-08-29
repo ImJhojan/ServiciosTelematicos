@@ -1,0 +1,58 @@
+
+# Jhojan Stiven Espinosa Montes - 2205936 - Parcial #1
+
+# Para realizar la instalacion de PAM, utilizamos el siguiente comando, el cual acepta automaticamente
+# todo los recursos necesarios.
+
+yum install mod_authnz_pam -y
+
+# Siguiendo esta ruta se encuentran el directorio conf.modules.d, ahí esta el archivo 55-authnz_pam.conf.
+# En este hay que descomentar la primera linea, para que apache pueda hacer uso de este modulo.
+
+vim /etc/httpd/conf.modules.d/55-authnz_pam.conf
+
+LoadModule authnz_pam_module modules/mod_authnz_pam.so
+
+# Es necesario crear el directorio, asi que se realiza el siguiente comando.
+
+mkdir /var/www/html/archivos_privados
+
+# Se crea una pagina html dentro directorio para cuando el usuario tiene un acceso exitoso.
+
+vim main.html
+
+# Por otro lado, en la carpeta de configuracion de modulos (conf.d), en ella se va a configurar el 
+# directorio "Archivos_privados" agregando las siguientes lineas.
+
+vi /etc/httpd/conf.d/authnz_pam.conf
+
+# En esta configuración se agrega la ruta del directorio, tipos de autenticación y usuarios validos
+# para acceder a dicha zona.
+
+<Directory "/var/www/html/archivos_privados">
+    AuthType Basic
+    AuthName "PAM Authentication"
+    AuthBasicProvider PAM
+    AuthPAMService httpd-auth
+    Require valid-user
+</Directory>
+
+# En el directorio pam.d (configura funcionalidad del modulo pam), hay un archivo, el cual habrá que 
+# modificar para que los usuarios que accedan desde apache a los archivos_privados puedan hacerlo.
+
+vim /etc/pam.d/httpd-auth
+
+auth       required     pam_listfile.so item=user sense=deny file=/etc/httpd/conf.d/denyusers onerr=succeed
+auth       include      system-auth
+account    include      system-auth
+
+# Se deberá crear un archivo lista para los usuarios denegados. En esta se agregan los usuarios del
+# sistema que no podran ingresar a los recursos.
+
+vim /etc/httpd/conf.d/denyusers
+
+# Para mayor seguridad de la lista, se asignan algunos permisos por grupos, en este caso apache y 
+# Archivos como lo es denyusers.
+
+chgrp apache /etc/httpd/conf.d/denyusers
+chmod 640 /etc/httpd/conf.d/denyusers
